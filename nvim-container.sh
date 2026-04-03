@@ -28,6 +28,8 @@ GIT_CONFIG_MOUNTS=()
 [ -f "${HOME}/.gitconfig" ] && GIT_CONFIG_MOUNTS+=(-v "${HOME}/.gitconfig:/home/${CONTAINER_USER}/.gitconfig:ro,z")
 [ -f "${HOME}/.config/git/config" ] && GIT_CONFIG_MOUNTS+=(-v "${HOME}/.config/git/config:/home/${CONTAINER_USER}/.config/git/config:ro,z")
 
+# --userns=keep-id ensures the in-container user owns the mounted files, Podman-specific - doesn't exist in Docker 
+# :z on volume mounts tells Podman to relabel the files for SELinux, :z (lowercase) if you want the label shared across multiple containers, :Z (uppercase) for private to this container
 podman run --rm -it \
   --userns=keep-id \
   --hostname "${CONTAINER_NAME}" \
@@ -40,6 +42,3 @@ podman run --rm -it \
   ${CONTAINER_NAME} \
   /home/${CONTAINER_USER}/${TARGET_DIR}
 
-# --userns=keep-id ensures the in-container user owns the mounted files, Podman-specific - doesn't exist in Docker 
-# :z on volume mounts tells Podman to relabel the files for SELinux, :z (lowercase) if you want the label shared across multiple containers, :Z (uppercase) for private to this container
-# "$@" passes all arguments given to this script into the container so that you can run e.g. nvim-container.sh file.txt and have file.txt opened inside the container
