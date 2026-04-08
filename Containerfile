@@ -48,5 +48,4 @@ RUN groupadd -g ${GID} --non-unique ${USERNAME} \
 USER ${USERNAME}
 WORKDIR /home/${USERNAME}
 
-# Entry point starts a tmux session running nvim; exiting nvim drops back to bash within tmux
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
