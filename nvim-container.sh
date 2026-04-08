@@ -101,6 +101,7 @@ podman run --rm -it \
   -v "${HOME}/.local/state/nvim:/home/${CONTAINER_USER}/.local/state/nvim:z" \
   "${GIT_CONFIG_MOUNTS[@]}" \
   -e TERM=xterm-256color \
+  -e COLORTERM=truecolor \
   -e LANG=C.UTF-8 \
   -w "/home/${CONTAINER_USER}/${TARGET_DIR}" \
   ${CONTAINER_NAME} \
