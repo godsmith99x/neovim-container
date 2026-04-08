@@ -8,9 +8,6 @@ SCRIPT_DIR="$(dirname "$(realpath "$0")")" # realpath on $0 resolves this script
 IMAGE_NAME="nvim-cont"
 
 NVIM_VERSION=0.12.0
-LAZYGIT_VERSION=0.60.0
-TREE_SITTER_VERSION=0.26.8
-FD_VERSION=10.4.2
 
 CONTAINERFILE_HASH=$(printf '%s %s %s %s %s %s' \
   "$(sha256sum "${SCRIPT_DIR}/Containerfile" | cut -d' ' -f1)" \
@@ -48,21 +45,6 @@ if [ "${CURRENT_HASH}" != "${CONTAINERFILE_HASH}" ]; then
     "https://github.com/neovim/neovim/releases/download/v${NVIM_VERSION}/nvim-linux-x86_64.tar.gz" \
     "${DOWNLOADS_DIR}/nvim-linux-x86_64.tar.gz" \
     "${NVIM_VERSION}"
-
-  download_if_needed \
-    "https://github.com/jesseduffield/lazygit/releases/download/v${LAZYGIT_VERSION}/lazygit_${LAZYGIT_VERSION}_linux_x86_64.tar.gz" \
-    "${DOWNLOADS_DIR}/lazygit.tar.gz" \
-    "${LAZYGIT_VERSION}"
-
-  download_if_needed \
-    "https://github.com/tree-sitter/tree-sitter/releases/download/v${TREE_SITTER_VERSION}/tree-sitter-cli-linux-x64.zip" \
-    "${DOWNLOADS_DIR}/tree-sitter-cli-linux-x64.zip" \
-    "${TREE_SITTER_VERSION}"
-
-  download_if_needed \
-    "https://github.com/sharkdp/fd/releases/download/v${FD_VERSION}/fd-v${FD_VERSION}-x86_64-unknown-linux-gnu.tar.gz" \
-    "${DOWNLOADS_DIR}/fd.tar.gz" \
-    "${FD_VERSION}"
 
   podman build -t ${IMAGE_NAME} \
     --label "containerfile-hash=${CONTAINERFILE_HASH}" \

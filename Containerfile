@@ -3,13 +3,7 @@ FROM docker.io/ubuntu:24.04
 RUN apt-get update \
     && apt-get upgrade -y --no-install-recommends \
     && apt-get install -y --no-install-recommends \
-        curl \
-        ca-certificates \
         git \
-        build-essential \
-        unzip \
-        fzf \
-        ripgrep \
         tmux \
         ncurses-term \ 
     && rm -rf /var/lib/apt/lists/*
@@ -17,19 +11,6 @@ RUN apt-get update \
 COPY downloads/nvim-linux-x86_64.tar.gz /tmp/
 RUN tar -C /usr/local -xzf /tmp/nvim-linux-x86_64.tar.gz --strip-components=1 \
     && rm /tmp/nvim-linux-x86_64.tar.gz
-
-COPY downloads/lazygit.tar.gz /tmp/
-RUN tar -C /usr/local/bin -xzf /tmp/lazygit.tar.gz lazygit \
-    && rm /tmp/lazygit.tar.gz
-
-COPY downloads/tree-sitter-cli-linux-x64.zip /tmp/
-RUN unzip /tmp/tree-sitter-cli-linux-x64.zip -d /usr/local/bin \
-    && chmod +x /usr/local/bin/tree-sitter \
-    && rm /tmp/tree-sitter-cli-linux-x64.zip
-
-COPY downloads/fd.tar.gz /tmp/
-RUN tar -C /usr/local/bin -xzf /tmp/fd.tar.gz --strip-components=1 --wildcards '*/fd' \
-    && rm /tmp/fd.tar.gz
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
