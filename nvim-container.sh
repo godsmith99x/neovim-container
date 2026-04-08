@@ -32,11 +32,11 @@ if [ "${CURRENT_HASH}" != "${CONTAINERFILE_HASH}" ]; then
     local version_file="${dest}.version"
     if [ ! -f "${dest}" ] || [ "$(cat "${version_file}" 2>/dev/null)" != "${version}" ]; then
       echo "Downloading $(basename "${dest}")..."
-      curl -L --http1.1 --retry 3 --retry-delay 5 --retry-all-errors --max-time 60 -o "${dest}" "${url}" || {
-        rm -f "${dest}"
-        echo "Error: failed to download $(basename "${dest}")"
-        exit 1
-      }
+      for attempt in 1 2 3; do
+        curl -L --http1.1 --max-time 60 -o "${dest}" "${url}" && break
+        [ $attempt -eq 3 ] && { rm -f "${dest}"; echo "Error: failed to download $(basename "${dest}")"; exit 1; }
+        sleep 5
+      done
       echo "${version}" > "${version_file}"
     fi
   }
