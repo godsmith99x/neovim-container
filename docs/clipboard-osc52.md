@@ -2,7 +2,7 @@
 
 ## Setup
 
-**Windows Terminal → SSH → RHEL8 VM (host tmux) → Podman container → Neovim**
+**Windows Terminal → SSH → RHEL8 VM (host tmux) → Podman container (container tmux) → Neovim**
 
 OSC 52 is a terminal escape sequence that lets applications set the system clipboard by writing to the terminal. Each layer in the chain must forward the sequence outward rather than absorbing it.
 
@@ -43,10 +43,23 @@ vim.g.clipboard = {
 vim.o.clipboard = 'unnamedplus'
 ```
 
-### `entrypoint.sh`
+### `config/tmux/tmux.conf` (container)
 
-Neovim must be launched **directly** (not wrapped in a tmux session inside the container). Running container tmux creates a new pty, which breaks the clipboard chain because the pty that Neovim's TUI channel writes to is no longer the SSH pty that Windows Terminal is listening on.
+```
+set -g set-clipboard on
+set -ag terminal-overrides ",xterm-256color:Ms=\\E]52;%p1%s;%p2%s\\007"
+```
 
-## Why tmux inside the container does not work
+Same principle as the host tmux config: `set-clipboard on` intercepts bare OSC 52 from Neovim and re-emits it outward to the RHEL8 host tmux, which in turn forwards it to Windows Terminal.
 
-The host tmux is version 2.7 (RHEL8 package). DCS passthrough (`allow-passthrough`) was added in tmux 3.3a. If Neovim runs inside container tmux, the bare OSC 52 emitted through container tmux's pty reaches host tmux, which intercepts and drops it because it cannot re-emit it outward without a working `Ms` capability on its own outer terminal.
+## How it works end-to-end
+
+1. Neovim calls `make_copy`, which temporarily unsets `$TMUX` and invokes the built-in OSC 52 provider
+2. The provider sends a **bare** OSC 52 (no DCS wrapping) via Neovim's internal TUI channel
+3. Container tmux intercepts it (`set-clipboard on` + `Ms`) and re-emits it outward
+4. RHEL8 host tmux intercepts it (`set-clipboard on` + `Ms`) and re-emits it outward
+5. Windows Terminal receives it and sets the system clipboard
+
+## Why `$TMUX` must be unset before copying
+
+Neovim's built-in OSC 52 provider detects `$TMUX` and automatically wraps sequences in a DCS passthrough (`\033Ptmux;...\033\\`). RHEL8 ships tmux 2.7, which does not support `allow-passthrough` (added in 3.3a) and cannot unwrap DCS sequences — so they are silently dropped. Temporarily unsetting `$TMUX` forces the provider to send a bare OSC 52 that both tmux layers can forward correctly.
