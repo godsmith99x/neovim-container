@@ -63,7 +63,7 @@ GIT_CONFIG_MOUNTS=()
 [ -f "${HOME}/.config/git/config" ] && GIT_CONFIG_MOUNTS+=(-v "${HOME}/.config/git/config:/home/${CONTAINER_USER}/.config/git/config:ro,z")
 
 # Ensure that the required nvim directories exist on the host
-mkdir -p "${HOME}/.local/share/nvim" "${HOME}/.local/state/nvim"
+mkdir -p "${HOME}/.local/share/${IMAGE_NAME}" "${HOME}/.local/state/${IMAGE_NAME}"
 
 # --userns=keep-id ensures the in-container user owns the mounted files, Podman-specific - doesn't exist in Docker 
 # :z on volume mounts tells Podman to relabel the files for SELinux, :z (lowercase) if you want the label shared across multiple containers, :Z (uppercase) for private to this container
@@ -73,8 +73,8 @@ podman run --rm -it \
   -v "${TARGET}:/home/${CONTAINER_USER}/${TARGET_DIR}:z" \
   -v "${SCRIPT_DIR}/config/nvim:/home/${CONTAINER_USER}/.config/nvim:z" \
   -v "${SCRIPT_DIR}/config/tmux:/home/${CONTAINER_USER}/.config/tmux:z" \
-  -v "${HOME}/.local/share/nvim:/home/${CONTAINER_USER}/.local/share/nvim:z" \
-  -v "${HOME}/.local/state/nvim:/home/${CONTAINER_USER}/.local/state/nvim:z" \
+  -v "${HOME}/.local/share/${IMAGE_NAME}:/home/${CONTAINER_USER}/.local/share/nvim:z" \
+  -v "${HOME}/.local/state/${IMAGE_NAME}:/home/${CONTAINER_USER}/.local/state/nvim:z" \
   "${GIT_CONFIG_MOUNTS[@]}" \
   -e TERM=xterm-256color \
   -e COLORTERM=truecolor \
