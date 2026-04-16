@@ -46,11 +46,6 @@ map("n", "<leader>bd", "<cmd>bdelete<CR>",   "Delete buffer")
 -- We're using the built-in netrw for now. No plugin needed.
 
 map("n", "<leader>e", "<cmd>Explore<CR>", "Open file explorer")
-map("n", "<leader>E", function()
-  vim.cmd("aboveleft vsplit")
-  vim.cmd("Explore")
-  vim.cmd("vertical resize 30")
-end, "Open explorer in left vertical split")
 
 -- netrw hijacks <C-l> (refresh listing) and <C-h>, overriding window navigation.
 -- Restore them as buffer-local mappings whenever a netrw buffer is opened.
