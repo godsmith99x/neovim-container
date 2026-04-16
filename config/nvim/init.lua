@@ -6,6 +6,7 @@
 vim.g.mapleader      = " "
 vim.g.maplocalleader = "\\"
 
+require("config.plugins")  -- must come first: installs plugins before anything requires them
 require("config.options")
 require("config.keymaps")
 require("config.clipboard")
