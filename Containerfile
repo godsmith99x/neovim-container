@@ -3,9 +3,11 @@ FROM docker.io/ubuntu:24.04
 RUN apt-get update \
     && apt-get upgrade -y --no-install-recommends \
     && apt-get install -y --no-install-recommends \
+        curl \
+        ca-certificates \
         git \
         tmux \
-        ncurses-term \ 
+        ncurses-term \
     && rm -rf /var/lib/apt/lists/*
 
 COPY downloads/nvim-linux-x86_64.tar.gz /tmp/
@@ -28,5 +30,11 @@ RUN groupadd -g ${GID} --non-unique ${USERNAME} \
 
 USER ${USERNAME}
 WORKDIR /home/${USERNAME}
+# home directory. HOME must be set explicitly because USER does not update it.
+ENV HOME=/home/${USERNAME}
+
+# Install OpenCode CLI as the container user, not root
+ARG OPENCODE_VERSION=1.4.8
+RUN curl -fsSL https://opencode.ai/install | bash -s -- --version ${OPENCODE_VERSION}
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

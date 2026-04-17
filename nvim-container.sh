@@ -8,11 +8,12 @@ SCRIPT_DIR="$(dirname "$(realpath "$0")")" # realpath on $0 resolves this script
 IMAGE_NAME="nvim-cont"
 
 NVIM_VERSION=0.12.0
+OPENCODE_VERSION=1.4.8
 
 CONTAINERFILE_HASH=$(printf '%s %s %s %s %s %s' \
   "$(sha256sum "${SCRIPT_DIR}/Containerfile" | cut -d' ' -f1)" \
   "$(sha256sum "${SCRIPT_DIR}/entrypoint.sh" | cut -d' ' -f1)" \
-  "${NVIM_VERSION}" "${LAZYGIT_VERSION}" "${TREE_SITTER_VERSION}" "${FD_VERSION}" \
+  "${NVIM_VERSION}" "${OPENCODE_VERSION}" \
   | sha256sum | cut -d' ' -f1)
 CURRENT_HASH=$(podman image inspect ${IMAGE_NAME} --format '{{index .Labels "containerfile-hash"}}' 2>/dev/null)
 
@@ -51,6 +52,7 @@ if [ "${CURRENT_HASH}" != "${CONTAINERFILE_HASH}" ]; then
     --build-arg USERNAME=${CONTAINER_USER} \
     --build-arg UID=$(id -u) \
     --build-arg GID=$(id -g) \
+    --build-arg OPENCODE_VERSION=${OPENCODE_VERSION} \
     "${SCRIPT_DIR}"
 fi
 
@@ -63,7 +65,7 @@ GIT_CONFIG_MOUNTS=()
 [ -f "${HOME}/.config/git/config" ] && GIT_CONFIG_MOUNTS+=(-v "${HOME}/.config/git/config:/home/${CONTAINER_USER}/.config/git/config:ro,z")
 
 # Ensure that the required nvim directories exist on the host
-mkdir -p "${HOME}/.local/share/${IMAGE_NAME}" "${HOME}/.local/state/${IMAGE_NAME}"
+mkdir -p "${HOME}/.local/share/${IMAGE_NAME}" "${HOME}/.local/share/${IMAGE_NAME}"/opencode "${HOME}/.local/state/${IMAGE_NAME}" "${HOME}/.local/state/${IMAGE_NAME}"/opencode
 
 # --userns=keep-id ensures the in-container user owns the mounted files, Podman-specific - doesn't exist in Docker 
 # :z on volume mounts tells Podman to relabel the files for SELinux, :z (lowercase) if you want the label shared across multiple containers, :Z (uppercase) for private to this container
@@ -75,6 +77,9 @@ podman run --rm -it \
   -v "${SCRIPT_DIR}/config/tmux:/home/${CONTAINER_USER}/.config/tmux:z" \
   -v "${HOME}/.local/share/${IMAGE_NAME}:/home/${CONTAINER_USER}/.local/share/nvim:z" \
   -v "${HOME}/.local/state/${IMAGE_NAME}:/home/${CONTAINER_USER}/.local/state/nvim:z" \
+  -v "${HOME}/.local/share/${IMAGE_NAME}/opencode:/home/${CONTAINER_USER}/.local/share/opencode:z" \
+  -v "${HOME}/.local/state/${IMAGE_NAME}/opencode:/home/${CONTAINER_USER}/.local/state/opencode:z" \
+  -v "${SCRIPT_DIR}/config/opencode:/home/${CONTAINER_USER}/.config/opencode:z" \
   "${GIT_CONFIG_MOUNTS[@]}" \
   -e TERM=xterm-256color \
   -e COLORTERM=truecolor \
