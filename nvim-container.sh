@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # nvim-container.sh
 
 CONTAINER_USER=$(id -un 2>/dev/null || echo "dev")
