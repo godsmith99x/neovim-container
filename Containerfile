@@ -34,7 +34,7 @@ WORKDIR /home/${USERNAME}
 ENV HOME=/home/${USERNAME}
 
 # Install OpenCode CLI as the container user, not root
-ARG OPENCODE_VERSION=1.4.8
+ARG OPENCODE_VERSION=1.14.19
 RUN curl -fsSL https://opencode.ai/install | bash -s -- --version ${OPENCODE_VERSION}
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

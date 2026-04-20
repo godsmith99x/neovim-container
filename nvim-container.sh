@@ -8,7 +8,7 @@ SCRIPT_DIR="$(dirname "$(realpath "$0")")" # realpath on $0 resolves this script
 IMAGE_NAME="nvim-cont"
 
 NVIM_VERSION=0.12.0
-OPENCODE_VERSION=1.4.8
+OPENCODE_VERSION=1.14.19
 
 CONTAINERFILE_HASH=$(printf '%s %s %s %s %s %s' \
   "$(sha256sum "${SCRIPT_DIR}/Containerfile" | cut -d' ' -f1)" \
