@@ -64,6 +64,15 @@ GIT_CONFIG_MOUNTS=()
 [ -f "${HOME}/.gitconfig" ] && GIT_CONFIG_MOUNTS+=(-v "${HOME}/.gitconfig:/home/${CONTAINER_USER}/.gitconfig:ro,z")
 [ -f "${HOME}/.config/git/config" ] && GIT_CONFIG_MOUNTS+=(-v "${HOME}/.config/git/config:/home/${CONTAINER_USER}/.config/git/config:ro,z")
 
+# If NODE_EXTRA_CA_CERTS points to an existing file, mount it into the container home directory
+NODE_CA_ARGS=()
+if [ -f "${NODE_EXTRA_CA_CERTS}" ]; then
+  NODE_CA_FILENAME=$(basename "${NODE_EXTRA_CA_CERTS}")
+  NODE_CA_CONTAINER_PATH="/home/${CONTAINER_USER}/${NODE_CA_FILENAME}"
+  NODE_CA_ARGS+=(-v "${NODE_EXTRA_CA_CERTS}:${NODE_CA_CONTAINER_PATH}:ro,z")
+  NODE_CA_ARGS+=(-e "NODE_EXTRA_CA_CERTS=${NODE_CA_CONTAINER_PATH}")
+fi
+
 # Ensure that the required nvim directories exist on the host
 mkdir -p "${HOME}/.local/share/${IMAGE_NAME}" "${HOME}/.local/share/${IMAGE_NAME}"/opencode "${HOME}/.local/state/${IMAGE_NAME}" "${HOME}/.local/state/${IMAGE_NAME}"/opencode
 
@@ -81,6 +90,10 @@ podman run --rm -it \
   -v "${HOME}/.local/state/${IMAGE_NAME}/opencode:/home/${CONTAINER_USER}/.local/state/opencode:z" \
   -v "${SCRIPT_DIR}/config/opencode:/home/${CONTAINER_USER}/.config/opencode:z" \
   "${GIT_CONFIG_MOUNTS[@]}" \
+  "${NODE_CA_ARGS[@]}" \
+  -e ANTHROPIC_PROVIDER_NAME="${ANTHROPIC_PROVIDER_NAME}" \
+  -e ANTHROPIC_BASE_URL="${ANTHROPIC_BASE_URL}" \
+  -e ANTHROPIC_AUTH_TOKEN="${ANTHROPIC_AUTH_TOKEN}" \
   -e TERM=xterm-256color \
   -e COLORTERM=truecolor \
   -e LANG=C.UTF-8 \
