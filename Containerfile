@@ -8,6 +8,7 @@ RUN apt-get update \
         git \
         tmux \
         ncurses-term \
+        openssh-client \
     && rm -rf /var/lib/apt/lists/*
 
 COPY downloads/nvim-linux-x86_64.tar.gz /tmp/

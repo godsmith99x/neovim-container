@@ -84,6 +84,7 @@ podman run --rm -it \
   -v "${TARGET}:/home/${CONTAINER_USER}/${TARGET_DIR}:z" \
   -v "${SCRIPT_DIR}/config/nvim:/home/${CONTAINER_USER}/.config/nvim:z" \
   -v "${SCRIPT_DIR}/config/tmux:/home/${CONTAINER_USER}/.config/tmux:z" \
+  -v "${HOME}/.ssh:/home/${CONTAINER_USER}/.ssh:ro,z" \
   -v "${HOME}/.local/share/${IMAGE_NAME}:/home/${CONTAINER_USER}/.local/share/nvim:z" \
   -v "${HOME}/.local/state/${IMAGE_NAME}:/home/${CONTAINER_USER}/.local/state/nvim:z" \
   -v "${HOME}/.local/share/${IMAGE_NAME}/opencode:/home/${CONTAINER_USER}/.local/share/opencode:z" \
