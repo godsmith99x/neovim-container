@@ -98,6 +98,7 @@ podman run --rm -it \
   -e TERM=xterm-256color \
   -e COLORTERM=truecolor \
   -e LANG=C.UTF-8 \
+  -e EDITOR=nvim \
   -w "/home/${CONTAINER_USER}/${TARGET_DIR}" \
   ${IMAGE_NAME} \
   /home/${CONTAINER_USER}/${TARGET_DIR}
