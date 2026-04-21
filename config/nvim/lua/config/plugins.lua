@@ -25,6 +25,15 @@ vim.pack.add({
   { src = "https://github.com/loctvl842/monokai-pro.nvim" },
   -- ── Colorscheme ─────────────────────────────────────────────────────────────
 
+  -- ── Syntax highlighting ──────────────────────────────────────────────────────
+  -- nvim-treesitter: parser management + highlight engine.
+  -- Neovim 0.12 ships parsers for: c, lua, vim, markdown, markdown_inline,
+  -- vimdoc, query. All others must be installed via nvim-treesitter.
+  -- Parsers are compiled on first launch (requires gcc + make in the image)
+  -- and persisted in the host-mounted ~/.local/share/nvim-cont volume.
+  { src = "https://github.com/nvim-treesitter/nvim-treesitter" },
+  -- ── Syntax highlighting ──────────────────────────────────────────────────────
+
 })
 
 -- =============================================================================
@@ -59,3 +68,39 @@ require("monokai-pro").setup({
 -- vim.cmd.colorscheme() is the Lua-idiomatic way to call :colorscheme.
 vim.cmd.colorscheme("monokai-pro-classic")
 -- ── Monokai Pro ───────────────────────────────────────────────────────────────
+
+-- ── nvim-treesitter ───────────────────────────────────────────────────────────
+-- Neovim 0.12 bundles parsers for: c, lua, vim, markdown, markdown_inline,
+-- vimdoc, query. The parsers listed below are NOT bundled and will be
+-- compiled on first launch. Compilation requires gcc + make (both installed
+-- in the container image). Compiled parsers are stored in
+-- ~/.local/share/nvim/parser/ which is on the host-mounted volume
+-- (~/.local/share/nvim-cont on the host), so they survive image rebuilds.
+--
+-- Notes:
+--   - "ansible" has no dedicated grammar; Ansible files are YAML — covered
+--     by the "yaml" parser.
+--   - "terraform" uses the "hcl" grammar (HashiCorp Configuration Language).
+--   - "c" is already bundled with Neovim 0.12 but listed here so treesitter
+--     highlight is explicitly enabled for it.
+local ok, treesitter = pcall(require, "nvim-treesitter.configs")
+if ok then
+  treesitter.setup({
+    ensure_installed = {
+      "bash",
+      "c",
+      "dockerfile",
+      "hcl",         -- Terraform
+      "javascript",
+      "json",
+      "python",
+      "typescript",
+      "yaml",
+    },
+    auto_install = false,  -- only install what's in ensure_installed
+    highlight = {
+      enable = true,
+    },
+  })
+end
+-- ── nvim-treesitter ───────────────────────────────────────────────────────────

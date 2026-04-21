@@ -5,7 +5,9 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         curl \
         ca-certificates \
+        gcc \
         git \
+        make \
         tmux \
         ncurses-term \
         openssh-client \
