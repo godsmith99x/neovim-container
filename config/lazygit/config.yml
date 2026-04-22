@@ -1,0 +1,18 @@
+# lazygit configuration
+# https://github.com/jesseduffield/lazygit/blob/master/docs/Config.md
+#
+# This file must exist or lazygit will error on launch.
+# All values here are explicit defaults — remove or adjust as needed.
+
+gui:
+  theme:
+    selectedLineBgColor:
+      - underline
+      - default
+    optionsTextColor:
+      - '#ffd866'
+  mouseEvents: true # false disables mouse to keep keyboard-driven workflow
+  nerdFontsVersion: "3"
+git:
+  pagers:
+    - pager: delta --paging=never

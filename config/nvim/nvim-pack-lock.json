@@ -1,5 +1,9 @@
 {
   "plugins": {
+    "lazygit.nvim": {
+      "rev": "a04ad0dbc725134edbee3a5eea29290976695357",
+      "src": "https://github.com/kdheepak/lazygit.nvim"
+    },
     "monokai-pro.nvim": {
       "rev": "d8884d4473667c48bd17a68d08383d38839136a3",
       "src": "https://github.com/loctvl842/monokai-pro.nvim"

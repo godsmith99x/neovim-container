@@ -34,7 +34,14 @@ vim.pack.add({
   { src = "https://github.com/nvim-treesitter/nvim-treesitter" },
   -- ── Syntax highlighting ──────────────────────────────────────────────────────
 
+  -- ── Git ──────────────────────────────────────────────────────────────────────
+  -- lazygit.nvim: opens lazygit in a floating terminal inside Neovim.
+  -- Requires the lazygit binary to be installed (handled in Containerfile).
+  { src = "https://github.com/kdheepak/lazygit.nvim" },
+  -- ── Git ──────────────────────────────────────────────────────────────────────
+
 })
 
 require("config.plugins.monokai")
 require("config.plugins.treesitter")
+require("config.plugins.lazygit")

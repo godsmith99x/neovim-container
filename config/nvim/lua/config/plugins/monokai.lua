@@ -7,7 +7,7 @@ require("monokai-pro").setup({
   filter = "pro",           -- the "pro" filter: dark background, muted tones
 
   transparent_background = false,
-  terminal_colors        = true,  -- apply theme to the built-in :terminal too
+  terminal_colors        = false, -- don't recolor terminal buffers (keeps lazygit looking like it does outside neovim)
 
   -- Italic styles — these mirror the original Monokai Pro VS Code theme.
   -- Set any to `{}` (empty table) if you don't want italics for that group.
