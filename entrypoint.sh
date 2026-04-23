@@ -9,6 +9,6 @@ exec tmux new-session -d -s main \; \
   send-keys "nvim ${NVIM_ARGS}; exec bash" Enter \; \
   split-window -h \; \
   send-keys "opencode; exec bash" Enter \; \
-  resize-pane -t 0 -x "66%" \; \
+  resize-pane -t 0 -x "70%" \; \
   select-pane -t 0 \; \
   attach-session -t main
