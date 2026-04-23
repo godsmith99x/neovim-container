@@ -17,6 +17,10 @@ A Podman-based Neovim + tmux + OpenCode container. One script wires everything t
 
 The script auto-builds the image (`nvim-cont`) if it is missing or if `Containerfile`, `entrypoint.sh`, `NVIM_VERSION`, `OPENCODE_VERSION`, or `LAZYGIT_VERSION` have changed (SHA256 hash stored as an image label).
 
+On launch, `entrypoint.sh` creates a tmux session with a vertical split:
+- **Left pane (66%):** neovim — drops to bash when neovim exits
+- **Right pane (33%):** opencode — drops to bash when opencode exits
+
 ## Forcing a Rebuild
 
 Change `NVIM_VERSION`, `OPENCODE_VERSION`, or `LAZYGIT_VERSION` in `nvim-container.sh`, edit `Containerfile`/`entrypoint.sh`, or:
