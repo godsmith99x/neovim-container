@@ -59,12 +59,24 @@ if [ "${CURRENT_HASH}" != "${CONTAINERFILE_HASH}" ]; then
     "${DOWNLOADS_DIR}/delta.tar.gz" \
     "${DELTA_VERSION}"
 
+  # Detect AVX2 support on the host and download the matching OpenCode binary.
+  # The container runs on the same CPU, so the host check is authoritative.
+  if grep -qwi avx2 /proc/cpuinfo 2>/dev/null; then
+    OPENCODE_ARCH_SUFFIX=""
+  else
+    OPENCODE_ARCH_SUFFIX="-baseline"
+  fi
+
+  download_if_needed \
+    "https://github.com/anomalyco/opencode/releases/download/v${OPENCODE_VERSION}/opencode-linux-x64${OPENCODE_ARCH_SUFFIX}.tar.gz" \
+    "${DOWNLOADS_DIR}/opencode.tar.gz" \
+    "${OPENCODE_VERSION}"
+
   podman build -t ${IMAGE_NAME} \
     --label "containerfile-hash=${CONTAINERFILE_HASH}" \
     --build-arg USERNAME=${CONTAINER_USER} \
     --build-arg UID=$(id -u) \
     --build-arg GID=$(id -g) \
-    --build-arg OPENCODE_VERSION=${OPENCODE_VERSION} \
     "${SCRIPT_DIR}"
 fi
 

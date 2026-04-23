@@ -27,6 +27,10 @@ RUN tar -C /usr/local/bin -xzf /tmp/delta.tar.gz --strip-components=1 \
     --wildcards '*/delta' \
     && rm /tmp/delta.tar.gz
 
+COPY downloads/opencode.tar.gz /tmp/
+RUN tar -C /usr/local/bin -xzf /tmp/opencode.tar.gz opencode \
+    && rm /tmp/opencode.tar.gz
+
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
@@ -45,9 +49,5 @@ USER ${USERNAME}
 WORKDIR /home/${USERNAME}
 # home directory. HOME must be set explicitly because USER does not update it.
 ENV HOME=/home/${USERNAME}
-
-# Install OpenCode CLI as the container user, not root
-ARG OPENCODE_VERSION=1.14.19
-RUN curl -fsSL https://opencode.ai/install | bash -s -- --version ${OPENCODE_VERSION}
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
