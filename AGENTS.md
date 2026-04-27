@@ -65,6 +65,7 @@ plugins/
 - **lazygit binary is installed at image build time** from a pre-downloaded tarball in `downloads/`. The version is controlled by `LAZYGIT_VERSION` in `nvim-container.sh` and is included in the image hash.
 - **lazygit config is at `config/lazygit/config.yml`** and is mounted into the container at `~/.config/lazygit/`. The file must exist or lazygit will error on launch.
 - **Git identity is injected at runtime via `config/git/gitconfig.template`.** The template contains `__GIT_USER_NAME__` and `__GIT_USER_EMAIL__` placeholders. On each launch, `nvim-container.sh` substitutes the correct values using `sed` (based on the selected profile), writes the result to a `mktemp` file, and mounts it as `~/.gitconfig` in the container. The temp file is deleted on script exit via `trap ... EXIT`. All other git settings (delta pager, merge config, etc.) live only in the template — there is no separate per-profile copy. To change shared git settings, edit `config/git/gitconfig.template` only.
+- **`~/.ssh` is mounted read-write** so that the container can update `known_hosts` when connecting to new hosts. This persists across container rebuilds.
 
 ## Tmux Key Bindings
 

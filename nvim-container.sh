@@ -155,12 +155,13 @@ podman run --rm -it \
   -v "${SCRIPT_DIR}/config/nvim:/home/${CONTAINER_USER}/.config/nvim:z" \
   -v "${SCRIPT_DIR}/config/opencode:/home/${CONTAINER_USER}/.config/opencode:z" \
   -v "${SCRIPT_DIR}/config/tmux:/home/${CONTAINER_USER}/.config/tmux:z" \
+  -v "${SCRIPT_DIR}/config/bash/.bashrc:/home/${CONTAINER_USER}/.bashrc:ro,z" \
   -v "${HOME}/.local/share/${IMAGE_NAME}/nvim:/home/${CONTAINER_USER}/.local/share/nvim:z" \
   -v "${HOME}/.local/share/${IMAGE_NAME}/opencode:/home/${CONTAINER_USER}/.local/share/opencode:z" \
   -v "${HOME}/.local/state/${IMAGE_NAME}/nvim:/home/${CONTAINER_USER}/.local/state/nvim:z" \
   -v "${HOME}/.local/state/${IMAGE_NAME}/opencode:/home/${CONTAINER_USER}/.local/state/opencode:z" \
   -v "${HOME}/.local/state/${IMAGE_NAME}/lazygit:/home/${CONTAINER_USER}/.local/state/lazygit:z" \
-  -v "${HOME}/.ssh:/home/${CONTAINER_USER}/.ssh:ro,z" \
+  -v "${HOME}/.ssh:/home/${CONTAINER_USER}/.ssh:z" \
   -v "${GITCONFIG_TMP}:/home/${CONTAINER_USER}/.gitconfig:ro,z" \
   "${NODE_CA_ARGS[@]}" \
   -e ANTHROPIC_PROVIDER_NAME="${ANTHROPIC_PROVIDER_NAME}" \
