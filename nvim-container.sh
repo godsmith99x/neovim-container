@@ -1,6 +1,43 @@
 #!/usr/bin/env bash
 # nvim-container.sh
 
+# Parse --personal / --work flags out of args before processing positional args.
+GIT_PROFILE_FLAG=""
+ARGS=()
+for arg in "$@"; do
+  case "$arg" in
+    --personal) GIT_PROFILE_FLAG="personal" ;;
+    --work)     GIT_PROFILE_FLAG="work" ;;
+    *)          ARGS+=("$arg") ;;
+  esac
+done
+set -- "${ARGS[@]}"
+
+# Resolve git profile: flag > GIT_PROFILE env var > interactive prompt
+GIT_PROFILE="${GIT_PROFILE_FLAG:-${GIT_PROFILE:-}}"
+if [ -z "${GIT_PROFILE}" ]; then
+  echo "Is this a personal or work repository?"
+  select GIT_PROFILE in personal work; do
+    [ -n "${GIT_PROFILE}" ] && break
+    echo "Please select 1 or 2."
+  done
+fi
+
+case "${GIT_PROFILE}" in
+  personal)
+    GIT_USER_NAME="godsmith"
+    GIT_USER_EMAIL="j.godsmith@proton.me"
+    ;;
+  work)
+    GIT_USER_NAME="Joel Godfrey-Smith"
+    GIT_USER_EMAIL="joel.n.godfrey-smith.ctr@us.navy.mil"
+    ;;
+  *)
+    echo "Error: GIT_PROFILE must be 'personal' or 'work', got '${GIT_PROFILE}'"
+    exit 1
+    ;;
+esac
+
 CONTAINER_USER=$(id -un 2>/dev/null || echo "dev")
 TARGET=$(realpath "${1:-.}")  # resolve to absolute path, default to current dir
 TARGET_DIR=$(basename "${TARGET}")  # directory name used as the mount point inside the container
@@ -80,13 +117,14 @@ if [ "${CURRENT_HASH}" != "${CONTAINERFILE_HASH}" ]; then
     "${SCRIPT_DIR}"
 fi
 
-# Mount host git config into the container so git operations (e.g. commits via a neovim plugin) use the host user's identity and settings.
-# Git config can live in two places: ~/.gitconfig (legacy) or ~/.config/git/config (XDG). We check both and mount whichever exist.
-# The mounts are read-only (:ro) to prevent the container from modifying host config files.
-# The conditional [ -f ... ] check is necessary because mounting a non-existent file path causes Podman to create a directory there instead.
-GIT_CONFIG_MOUNTS=()
-[ -f "${HOME}/.gitconfig" ] && GIT_CONFIG_MOUNTS+=(-v "${HOME}/.gitconfig:/home/${CONTAINER_USER}/.gitconfig:ro,z")
-[ -f "${HOME}/.config/git/config" ] && GIT_CONFIG_MOUNTS+=(-v "${HOME}/.config/git/config:/home/${CONTAINER_USER}/.config/git/config:ro,z")
+# Build a gitconfig from the template by substituting the user name and email for the selected profile.
+# A temp file is used so Podman has a real file path to bind-mount. The trap ensures it is always
+# deleted on exit, even if the script is interrupted.
+GITCONFIG_TMP=$(mktemp)
+trap "rm -f ${GITCONFIG_TMP}" EXIT
+sed -e "s/__GIT_USER_NAME__/${GIT_USER_NAME}/" \
+    -e "s/__GIT_USER_EMAIL__/${GIT_USER_EMAIL}/" \
+    "${SCRIPT_DIR}/config/git/gitconfig.template" > "${GITCONFIG_TMP}"
 
 # If NODE_EXTRA_CA_CERTS points to an existing file, mount it into the container home directory
 NODE_CA_ARGS=()
@@ -123,7 +161,7 @@ podman run --rm -it \
   -v "${HOME}/.local/state/${IMAGE_NAME}/opencode:/home/${CONTAINER_USER}/.local/state/opencode:z" \
   -v "${HOME}/.local/state/${IMAGE_NAME}/lazygit:/home/${CONTAINER_USER}/.local/state/lazygit:z" \
   -v "${HOME}/.ssh:/home/${CONTAINER_USER}/.ssh:ro,z" \
-  "${GIT_CONFIG_MOUNTS[@]}" \
+  -v "${GITCONFIG_TMP}:/home/${CONTAINER_USER}/.gitconfig:ro,z" \
   "${NODE_CA_ARGS[@]}" \
   -e ANTHROPIC_PROVIDER_NAME="${ANTHROPIC_PROVIDER_NAME}" \
   -e ANTHROPIC_BASE_URL="${ANTHROPIC_BASE_URL}" \

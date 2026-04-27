@@ -11,15 +11,20 @@ A Podman-based Neovim + tmux + OpenCode container. One script wires everything t
 ## Running
 
 ```bash
-./nvim-container.sh               # launch with current directory mounted
+./nvim-container.sh               # launch with current directory mounted (prompts for git profile)
 ./nvim-container.sh /path/to/dir  # launch with a specific directory
+./nvim-container.sh --personal    # skip prompt, use personal git identity
+./nvim-container.sh --work        # skip prompt, use work git identity
+GIT_PROFILE=personal ./nvim-container.sh  # skip prompt via env var
 ```
+
+The `--personal`/`--work` flags and the `GIT_PROFILE` env var are all equivalent ways to skip the interactive prompt. If none are provided, the script asks at startup.
 
 The script auto-builds the image (`nvim-cont`) if it is missing or if `Containerfile`, `entrypoint.sh`, `NVIM_VERSION`, `OPENCODE_VERSION`, `LAZYGIT_VERSION`, or `DELTA_VERSION` have changed (SHA256 hash stored as an image label).
 
-On launch, `entrypoint.sh` creates a tmux session with a vertical split:
-- **Left pane (66%):** neovim — drops to bash when neovim exits
-- **Right pane (33%):** opencode — drops to bash when opencode exits
+On launch, `entrypoint.sh` creates a tmux session with:
+- **Left pane (70%):** neovim — drops to bash when neovim exits
+- **Right pane (30%):** opencode — drops to bash when opencode exits
 
 ## Forcing a Rebuild
 
@@ -59,6 +64,11 @@ plugins/
 - **Tree-sitter parsers compile on first launch.** `nvim-treesitter` is managed via `vim.pack`; `gcc` and `make` are installed in the image for this. Compiled parsers land in `~/.local/share/nvim/parser/` (host-mounted at `~/.local/share/nvim-cont/nvim`), so they survive image rebuilds. Ansible has no dedicated grammar — use `yaml`. Terraform uses the `hcl` grammar. Neovim 0.12 already bundles `c`, `lua`, `vim`, `markdown`, `markdown_inline`, `vimdoc`, and `query`.
 - **lazygit binary is installed at image build time** from a pre-downloaded tarball in `downloads/`. The version is controlled by `LAZYGIT_VERSION` in `nvim-container.sh` and is included in the image hash.
 - **lazygit config is at `config/lazygit/config.yml`** and is mounted into the container at `~/.config/lazygit/`. The file must exist or lazygit will error on launch.
+- **Git identity is injected at runtime via `config/git/gitconfig.template`.** The template contains `__GIT_USER_NAME__` and `__GIT_USER_EMAIL__` placeholders. On each launch, `nvim-container.sh` substitutes the correct values using `sed` (based on the selected profile), writes the result to a `mktemp` file, and mounts it as `~/.gitconfig` in the container. The temp file is deleted on script exit via `trap ... EXIT`. All other git settings (delta pager, merge config, etc.) live only in the template — there is no separate per-profile copy. To change shared git settings, edit `config/git/gitconfig.template` only.
+
+## Tmux Key Bindings
+
+All bindings use the tmux prefix (default `Ctrl-b` or alternate `M-z`):
 
 ## Validation
 
