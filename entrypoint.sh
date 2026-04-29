@@ -1,14 +1,14 @@
 #!/bin/bash
 
-# Start a detached tmux session with a vertical split:
-#   left pane  (66%): nvim; drops to bash when nvim exits
-#   right pane (33%): opencode; drops to bash when opencode exits
 NVIM_ARGS=$(printf '%q ' "$@")
 
-exec tmux new-session -d -s main \; \
-  send-keys "nvim ${NVIM_ARGS}; exec bash" Enter \; \
-  split-window -h \; \
-  send-keys "opencode; exec bash" Enter \; \
-  resize-pane -t 0 -x "70%" \; \
-  select-pane -t 0 \; \
-  attach-session -t main
+# Create detached session for opencode that stays running in background
+tmux new-session -d -s opencode-bg "opencode; exec bash"
+
+# Create detached session for terminal popup that stays running in background
+tmux new-session -d -s terminal-bg
+
+# Create neovim session with neovim in a visible pane
+exec tmux new-session -d -s neovim \;\
+  send-keys "nvim ${NVIM_ARGS}; exec bash" Enter \;\
+  attach-session -t neovim

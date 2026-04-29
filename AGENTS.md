@@ -26,6 +26,10 @@ On launch, `entrypoint.sh` creates a tmux session with:
 - **Left pane (70%):** neovim — drops to bash when neovim exits
 - **Right pane (30%):** opencode — drops to bash when opencode exits
 
+Detached background sessions are also created:
+- **`opencode-bg`:** accessed via popup with `<prefix>o`
+- **`terminal-bg`:** accessed via popup with `<prefix>t`
+
 ## Forcing a Rebuild
 
 Change `NVIM_VERSION`, `OPENCODE_VERSION`, `LAZYGIT_VERSION`, or `DELTA_VERSION` in `nvim-container.sh`, edit `Containerfile`/`entrypoint.sh`, or:
@@ -70,6 +74,9 @@ plugins/
 ## Tmux Key Bindings
 
 All bindings use the tmux prefix (default `Ctrl-b` or alternate `M-z`):
+
+- **`<prefix>o`:** open/close opencode popup
+- **`<prefix>t`:** open/close terminal popup
 
 ## Validation
 
