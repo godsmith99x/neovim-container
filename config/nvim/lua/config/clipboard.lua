@@ -30,4 +30,3 @@ vim.g.clipboard = {
     ['*'] = osc52.paste('*'),
   },
 }
-vim.o.clipboard = 'unnamedplus'
