@@ -40,8 +40,9 @@ vim.g.clipboard = {
   copy  = { ['+'] = make_copy('+'), ['*'] = make_copy('*') },
   paste = { ['+'] = osc52.paste('+'), ['*'] = osc52.paste('*') },
 }
-vim.o.clipboard = 'unnamedplus'
 ```
+
+We intentionally do **not** set `vim.o.clipboard = 'unnamedplus'`. With that option, every text deletion (including single-character backspaces, `x`, `dw`, etc.) gets copied to the system clipboard, overwriting whatever you had there. The OSC 52 handlers on `vim.g.clipboard` are invoked only for explicit yank/paste operations via the `+` and `*` registers.
 
 ### `config/tmux/tmux.conf` (container)
 
