@@ -155,6 +155,7 @@ podman run --rm -it \
   -v "${SCRIPT_DIR}/config/nvim:/home/${CONTAINER_USER}/.config/nvim:z" \
   -v "${SCRIPT_DIR}/config/opencode:/home/${CONTAINER_USER}/.config/opencode:z" \
   -v "${SCRIPT_DIR}/config/tmux:/home/${CONTAINER_USER}/.config/tmux:z" \
+  -v "${SCRIPT_DIR}/config/ssh/checkhostip.conf:/etc/ssh/ssh_config.d/checkhostip.conf:ro,z" \
   -v "${SCRIPT_DIR}/config/bash/.bashrc:/home/${CONTAINER_USER}/.bashrc:ro,z" \
   -v "${HOME}/.local/share/${IMAGE_NAME}/nvim:/home/${CONTAINER_USER}/.local/share/nvim:z" \
   -v "${HOME}/.local/share/${IMAGE_NAME}/opencode:/home/${CONTAINER_USER}/.local/share/opencode:z" \
