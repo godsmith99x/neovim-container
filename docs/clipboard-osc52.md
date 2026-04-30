@@ -64,3 +64,9 @@ Same principle as the host tmux config: `set-clipboard on` intercepts bare OSC 5
 ## Why `$TMUX` must be unset before copying
 
 Neovim's built-in OSC 52 provider detects `$TMUX` and automatically wraps sequences in a DCS passthrough (`\033Ptmux;...\033\\`). RHEL8 ships tmux 2.7, which does not support `allow-passthrough` (added in 3.3a) and cannot unwrap DCS sequences — so they are silently dropped. Temporarily unsetting `$TMUX` forces the provider to send a bare OSC 52 that both tmux layers can forward correctly.
+
+## Copying from opencode and shell terminals
+
+Opencode and the shell terminal run as **regular tmux windows** within the `neovim` session (not as popups). Because there is no `display-popup` boundary, tmux's clipboard forwarding (`set-clipboard on` + `Ms` terminfo override) works identically to any normal pane. OSC 52 sequences emitted by Neovim or captured by tmux copy-mode are forwarded outward through the container tmux → host tmux → Windows Terminal chain without interruption.
+
+**Historical note:** The original design used `display-popup` windows to show opencode and the terminal as overlaid boxes. That approach was abandoned because tmux (as of 3.6a) does not forward OSC 52 through `display-popup` boundaries — confirmed by the tmux maintainer in issue #3817. Switching to regular tmux windows eliminated the problem entirely.

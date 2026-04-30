@@ -47,9 +47,11 @@ This tells tmux that the *outer* terminal (identified as `xterm-256color` via th
 
 `LANG=C.UTF-8` is injected by `-e LANG=C.UTF-8` and is also in tmux's default `update-environment` list, so it should propagate automatically. This line is kept as a belt-and-suspenders measure to guarantee correct locale (UTF-8) inside tmux panes, guarding against any context where `update-environment` propagation might not happen as expected (e.g. non-interactive shells, SSH sessions).
 
-### `set -g allow-passthrough on`
+### `set -g allow-passthrough all`
 
 Enables OSC/DCS escape sequence passthrough. This allows escape sequences (such as OSC 52 for clipboard integration, or the kitty image protocol) to pass through tmux directly to the host terminal without tmux intercepting them. Not directly related to the environment variables, but important for full terminal feature support.
+
+`all` (tmux 3.3+ syntax) is required instead of `on`. `on` only covers DCS-wrapped sequences in visible panes; `all` covers bare OSC sequences and invisible/popup panes. Do not downgrade to `on`.
 
 ### `set -g mouse on`
 
@@ -86,7 +88,7 @@ Convenience keybindings. Unrelated to environment variables.
 | `set -ag terminal-overrides ",xterm-256color:RGB"` | Required | Enables RGB passthrough to the outer terminal |
 | `set-environment -g COLORTERM "truecolor"` | Belt-and-suspenders | Duplicate of `-e COLORTERM=truecolor`, but kept for safety |
 | `set-environment -g LANG "C.UTF-8"` | Belt-and-suspenders | Duplicate of `-e LANG=C.UTF-8`, but kept for locale safety |
-| `set -g allow-passthrough on` | Required | OSC/escape sequence passthrough to host terminal |
+| `set -g allow-passthrough all` | Required | OSC/escape sequence passthrough to host terminal; `all` required for all pane types |
 | `set -g mouse on` | Required | Mouse support |
 | `set-option -g history-limit 5000` | Required | Scrollback buffer size |
 | `setw -g mode-keys vi` | Required | Vi keybindings in copy mode |

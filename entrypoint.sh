@@ -2,13 +2,14 @@
 
 NVIM_ARGS=$(printf '%q ' "$@")
 
-# Create detached session for opencode that stays running in background
-tmux new-session -d -s opencode-bg "opencode; exec bash"
-
-# Create detached session for terminal popup that stays running in background
-tmux new-session -d -s terminal-bg
-
-# Create neovim session with neovim in a visible pane
-exec tmux new-session -d -s neovim \;\
+# Create neovim session with three named windows:
+#   nvim      — Neovim (starts here)
+#   opencode  — opencode running in background
+#   terminal  — shell ready for ad-hoc use
+exec tmux new-session -d -s neovim -n nvim \;\
   send-keys "nvim ${NVIM_ARGS}; exec bash" Enter \;\
+  new-window -t neovim -n opencode \;\
+  send-keys "opencode; exec bash" Enter \;\
+  new-window -t neovim -n terminal \;\
+  select-window -t neovim:nvim \;\
   attach-session -t neovim
