@@ -57,7 +57,7 @@ CONTAINERFILE_HASH=$(printf '%s %s %s %s %s %s' \
 CURRENT_HASH=$(podman image inspect ${IMAGE_NAME} --format '{{index .Labels "containerfile-hash"}}' 2>/dev/null)
 
 if [ "${CURRENT_HASH}" != "${CONTAINERFILE_HASH}" ]; then
-  echo "Image '${IMAGE_NAME}' not found or Containerfile changed, building..."
+  echo "Image '${IMAGE_NAME}' not found or a build change has been detected, building..."
 
   # Pre-download release archives on the host to avoid SSL issues inside the container build network.
   # Files are saved to downloads/ with fixed names; a .version sidecar tracks the expected version

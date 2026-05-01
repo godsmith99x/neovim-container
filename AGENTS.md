@@ -23,9 +23,9 @@ The `--personal`/`--work` flags and the `GIT_PROFILE` env var are all equivalent
 The script auto-builds the image (`nvim-cont`) if it is missing or if `Containerfile`, `entrypoint.sh`, `NVIM_VERSION`, `OPENCODE_VERSION`, `LAZYGIT_VERSION`, or `DELTA_VERSION` have changed (SHA256 hash stored as an image label).
 
 On launch, `entrypoint.sh` creates a single tmux session (`neovim`) with three named windows:
-- **Window 1 (`nvim`):** neovim — drops to bash when neovim exits (starts here)
-- **Window 2 (`opencode`):** opencode — drops to bash when opencode exits
-- **Window 3 (`terminal`):** shell — ready for ad-hoc use
+- **Window 1 (`nvim-v`):** neovim — drops to bash when neovim exits (starts here)
+- **Window 2 (`opencode-k`):** opencode — drops to bash when opencode exits
+- **Window 3 (`term-h`):** shell — ready for ad-hoc use
 
 ## Forcing a Rebuild
 
@@ -73,9 +73,12 @@ plugins/
 
 All bindings use the tmux prefix (default `Ctrl-b` or alternate `M-z`):
 
-- **`<prefix>o`:** toggle opencode window (switches from any window to opencode; from opencode, switches back to nvim)
-- **`<prefix>t`:** toggle terminal window (switches from any window to terminal; from terminal, switches back to nvim)
+- **`<prefix>v`:** go to neovim window
+- **`<prefix>k`:** go to opencode window
+- **`<prefix>h`:** go to term window
 - **`<prefix>l`:** switch to last window (tmux default — quick toggle between the two most recently viewed windows)
+
+None of these bindings override default tmux prefix keys.
 
 ## Validation
 
