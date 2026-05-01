@@ -31,6 +31,8 @@ opt.backup   = false    -- same reasoning
 opt.updatetime = 250    -- ms before CursorHold fires; controls LSP hover and git sign
                         -- responsiveness. Vim default is 4000ms which feels very sluggish.
 
+opt.autoread = true    -- auto-reload files changed externally
+
 -- ── Search ────────────────────────────────────────────────────────────────────
 
 opt.ignorecase = true   -- case-insensitive search by default ...

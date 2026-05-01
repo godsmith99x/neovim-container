@@ -10,3 +10,4 @@ require("config.plugins")  -- must come first: installs plugins before anything 
 require("config.options")
 require("config.keymaps")
 require("config.clipboard")
+require("config.autocmds")
