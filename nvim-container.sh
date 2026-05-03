@@ -1,17 +1,40 @@
 #!/usr/bin/env bash
 # nvim-container.sh
 
-# Parse --personal / --work flags out of args before processing positional args.
+print_help() {
+  echo "Usage: $0 [OPTIONS] [DIRECTORY]"
+  echo ""
+  echo "Options:"
+  echo "  --personal   Use personal git profile (git name/email)"
+  echo "  --work       Use work git profile"
+  echo "  --tmux       Use tmux-tabs.sh entrypoint (default: neovim.sh)"
+  echo "  --help       Show this help message"
+  echo ""
+  echo "Environment Variables:"
+  echo "  GIT_PROFILE   Set to 'personal' or 'work' to skip interactive prompt"
+  echo "  ANTHROPIC_*   API keys/config for OpenCode"
+  echo "  NODE_EXTRA_CA_CERTS  Path to CA certs for Node.js"
+}
+
+# Section 1: CLI Flag Parsing
+ENTRYPOINT_SCRIPT="neovim.sh"  # default entrypoint
 GIT_PROFILE_FLAG=""
 ARGS=()
 for arg in "$@"; do
   case "$arg" in
     --personal) GIT_PROFILE_FLAG="personal" ;;
     --work)     GIT_PROFILE_FLAG="work" ;;
+    --tmux)     ENTRYPOINT_SCRIPT="tmux-tabs.sh" ;;
+    --help)     print_help; exit 0 ;;
     *)          ARGS+=("$arg") ;;
   esac
 done
 set -- "${ARGS[@]}"
+
+# Resolve entrypoint path
+ENTRYPOINT_PATH="/usr/local/bin/entrypoints/${ENTRYPOINT_SCRIPT}"
+
+# Section 2: Configuration
 
 # Resolve git profile: flag > GIT_PROFILE env var > interactive prompt
 GIT_PROFILE="${GIT_PROFILE_FLAG:-${GIT_PROFILE:-}}"
@@ -49,6 +72,7 @@ OPENCODE_VERSION=1.14.19
 LAZYGIT_VERSION=0.61.1
 DELTA_VERSION=0.19.2
 
+# Section 3: Image Build (if needed)
 CONTAINERFILE_HASH=$(printf '%s %s %s %s %s %s' \
   "$(sha256sum "${SCRIPT_DIR}/Containerfile" | cut -d' ' -f1)" \
   "$(sha256sum "${SCRIPT_DIR}/entrypoint.sh" | cut -d' ' -f1)" \
@@ -117,6 +141,8 @@ if [ "${CURRENT_HASH}" != "${CONTAINERFILE_HASH}" ]; then
     "${SCRIPT_DIR}"
 fi
 
+# Section 4: Pre-Run Setup
+
 # Build a gitconfig from the template by substituting the user name and email for the selected profile.
 # A temp file is used so Podman has a real file path to bind-mount. The trap ensures it is always
 # deleted on exit, even if the script is interrupted.
@@ -135,6 +161,9 @@ if [ -f "${NODE_EXTRA_CA_CERTS}" ]; then
   NODE_CA_ARGS+=(-e "NODE_EXTRA_CA_CERTS=${NODE_CA_CONTAINER_PATH}")
 fi
 
+# Ensure entrypoint scripts are executable on the host (replaces image chmod)
+chmod +x "${SCRIPT_DIR}/entrypoints/"*.sh 2>/dev/null
+
 # Ensure persistent data and state directories exist on the host for each tool.
 # All directories are namespaced under ~/.local/{share,state}/nvim-cont/ to keep
 # the host tidy. Each tool gets its own subdirectory.
@@ -144,6 +173,8 @@ mkdir -p \
   "${HOME}/.local/state/${IMAGE_NAME}/nvim" \
   "${HOME}/.local/state/${IMAGE_NAME}/opencode" \
   "${HOME}/.local/state/${IMAGE_NAME}/lazygit"
+
+# Section 5: Container Execution
 
 # --userns=keep-id ensures the in-container user owns the mounted files, Podman-specific - doesn't exist in Docker 
 # :z on volume mounts tells Podman to relabel the files for SELinux, :z (lowercase) if you want the label shared across multiple containers, :Z (uppercase) for private to this container
@@ -155,6 +186,7 @@ podman run --rm -it \
   -v "${SCRIPT_DIR}/config/nvim:/home/${CONTAINER_USER}/.config/nvim:z" \
   -v "${SCRIPT_DIR}/config/opencode:/home/${CONTAINER_USER}/.config/opencode:z" \
   -v "${SCRIPT_DIR}/config/tmux:/home/${CONTAINER_USER}/.config/tmux:z" \
+  -v "${SCRIPT_DIR}/entrypoints:/usr/local/bin/entrypoints:z" \
   -v "${SCRIPT_DIR}/config/ssh/checkhostip.conf:/etc/ssh/ssh_config.d/checkhostip.conf:ro,z" \
   -v "${SCRIPT_DIR}/config/bash/.bashrc:/home/${CONTAINER_USER}/.bashrc:ro,z" \
   -v "${HOME}/.local/share/${IMAGE_NAME}/nvim:/home/${CONTAINER_USER}/.local/share/nvim:z" \
@@ -168,10 +200,11 @@ podman run --rm -it \
   -e ANTHROPIC_PROVIDER_NAME="${ANTHROPIC_PROVIDER_NAME}" \
   -e ANTHROPIC_BASE_URL="${ANTHROPIC_BASE_URL}" \
   -e ANTHROPIC_AUTH_TOKEN="${ANTHROPIC_AUTH_TOKEN}" \
-  -e TERM=xterm-256color \
   -e COLORTERM=truecolor \
-  -e LANG=C.UTF-8 \
   -e EDITOR=nvim \
+  -e LANG=C.UTF-8 \
+  -e TERM=xterm-256color \
+  -e ENTRYPOINT="${ENTRYPOINT_PATH}" \
   -w "/home/${CONTAINER_USER}/${TARGET_DIR}" \
   ${IMAGE_NAME} \
   /home/${CONTAINER_USER}/${TARGET_DIR}

@@ -15,14 +15,18 @@ A Podman-based Neovim + tmux + OpenCode container. One script wires everything t
 ./nvim-container.sh /path/to/dir  # launch with a specific directory
 ./nvim-container.sh --personal    # skip prompt, use personal git identity
 ./nvim-container.sh --work        # skip prompt, use work git identity
+./nvim-container.sh --tmux        # use tmux-tabs.sh entrypoint (default: neovim.sh)
+./nvim-container.sh --help        # show usage and exit
 GIT_PROFILE=personal ./nvim-container.sh  # skip prompt via env var
 ```
 
 The `--personal`/`--work` flags and the `GIT_PROFILE` env var are all equivalent ways to skip the interactive prompt. If none are provided, the script asks at startup.
 
-The script auto-builds the image (`nvim-cont`) if it is missing or if `Containerfile`, `entrypoint.sh`, `NVIM_VERSION`, `OPENCODE_VERSION`, `LAZYGIT_VERSION`, or `DELTA_VERSION` have changed (SHA256 hash stored as an image label).
+The `--tmux` flag selects the `tmux-tabs.sh` entrypoint (creates a tmux session with neovim, opencode, and term windows). Without it, the default `neovim.sh` entrypoint launches neovim directly.
 
-On launch, `entrypoint.sh` creates a single tmux session (`neovim`) with three named windows:
+The script auto-builds the image (`nvim-cont`) if it is missing or if `Containerfile`, `entrypoint.sh`, `NVIM_VERSION`, `OPENCODE_VERSION`, `LAZYGIT_VERSION`, or `DELTA_VERSION` have changed (SHA256 hash stored as an image label). Changes to scripts in `entrypoints/` do **not** trigger rebuilds — they are mounted from the host at runtime.
+
+On launch, `entrypoint.sh` validates and runs the script specified by the `ENTRYPOINT` environment variable. The default `neovim.sh` entrypoint launches neovim directly. The `tmux-tabs.sh` entrypoint creates a single tmux session (`neovim`) with three named windows:
 - **Window 1 (`nvim-v`):** neovim — drops to bash when neovim exits (starts here)
 - **Window 2 (`opencode-k`):** opencode — drops to bash when opencode exits
 - **Window 3 (`term-h`):** shell — ready for ad-hoc use
@@ -38,6 +42,16 @@ podman rmi nvim-cont
 ## Version Sync Requirement
 
 `NVIM_VERSION`, `OPENCODE_VERSION`, `LAZYGIT_VERSION`, and `DELTA_VERSION` are all only in `nvim-container.sh`.
+
+## Entrypoint Scripts
+
+Entrypoint scripts live in `entrypoints/` on the host and are mounted into the container at `/usr/local/bin/entrypoints/`. `entrypoint.sh` acts as a dispatcher: it validates the `ENTRYPOINT` env var and runs the selected script with arguments forwarded.
+
+Available entrypoints:
+- **`neovim.sh`** (default) — launches neovim directly
+- **`tmux-tabs.sh`** (via `--tmux` flag) — creates tmux session with neovim, opencode, and term windows
+
+To add a new entrypoint: create `entrypoints/<name>.sh`, make it executable, and pass `-e ENTRYPOINT="/usr/local/bin/entrypoints/<name>.sh"` to the container.
 
 ## Plugin Structure
 
