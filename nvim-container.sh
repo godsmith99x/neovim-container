@@ -8,6 +8,8 @@ print_help() {
   echo "  --personal   Use personal git profile (git name/email)"
   echo "  --work       Use work git profile"
   echo "  --tmux       Use tmux-tabs.sh entrypoint (default: neovim.sh)"
+  echo "  --config     Neovim config to use: custom, lazyvim, nvchad (default: custom)"
+  echo "  --skip-build Skip image build; fail if image does not exist"
   echo "  --help       Show this help message"
   echo ""
   echo "Environment Variables:"
@@ -19,17 +21,29 @@ print_help() {
 # Section 1: CLI Flag Parsing
 ENTRYPOINT_SCRIPT="neovim.sh"  # default entrypoint
 GIT_PROFILE_FLAG=""
+NEOVIM_CONFIG="custom" # default neovim config
+SKIP_BUILD=false
 ARGS=()
 for arg in "$@"; do
   case "$arg" in
     --personal) GIT_PROFILE_FLAG="personal" ;;
     --work)     GIT_PROFILE_FLAG="work" ;;
     --tmux)     ENTRYPOINT_SCRIPT="tmux-tabs.sh" ;;
+    --config=*) NEOVIM_CONFIG="${arg#*=}" ;;
+    --skip-build) SKIP_BUILD=true ;;
     --help)     print_help; exit 0 ;;
     *)          ARGS+=("$arg") ;;
   esac
 done
 set -- "${ARGS[@]}"
+
+SCRIPT_DIR="$(dirname "$(realpath "$0")")" # realpath on $0 resolves this script's actual location regardless of where you call it from
+
+# Validate neovim config directory exists
+if [ ! -d "${SCRIPT_DIR}/config/nvim/${NEOVIM_CONFIG}" ]; then
+  echo "Error: ${SCRIPT_DIR}/config/nvim/${NEOVIM_CONFIG} does not exist"
+  exit 1
+fi
 
 # Resolve entrypoint path
 ENTRYPOINT_PATH="/usr/local/bin/entrypoints/${ENTRYPOINT_SCRIPT}"
@@ -64,81 +78,101 @@ esac
 CONTAINER_USER=$(id -un 2>/dev/null || echo "dev")
 TARGET=$(realpath "${1:-.}")  # resolve to absolute path, default to current dir
 TARGET_DIR=$(basename "${TARGET}")  # directory name used as the mount point inside the container
-SCRIPT_DIR="$(dirname "$(realpath "$0")")" # realpath on $0 resolves this script's actual location regardless of where you call it from
 IMAGE_NAME="nvim-cont"
 
+DELTA_VERSION=0.19.2
+FD_VERSION=10.4.2
+LAZYGIT_VERSION=0.61.1
 NVIM_VERSION=0.12.0
 OPENCODE_VERSION=1.14.19
-LAZYGIT_VERSION=0.61.1
-DELTA_VERSION=0.19.2
+TREE_SITTER_VERSION=0.26.8
 
 # Section 3: Image Build (if needed)
-CONTAINERFILE_HASH=$(printf '%s %s %s %s %s %s' \
-  "$(sha256sum "${SCRIPT_DIR}/Containerfile" | cut -d' ' -f1)" \
-  "$(sha256sum "${SCRIPT_DIR}/entrypoint.sh" | cut -d' ' -f1)" \
-  "${NVIM_VERSION}" "${OPENCODE_VERSION}" "${LAZYGIT_VERSION}" "${DELTA_VERSION}" \
-  | sha256sum | cut -d' ' -f1)
-CURRENT_HASH=$(podman image inspect ${IMAGE_NAME} --format '{{index .Labels "containerfile-hash"}}' 2>/dev/null)
-
-if [ "${CURRENT_HASH}" != "${CONTAINERFILE_HASH}" ]; then
-  echo "Image '${IMAGE_NAME}' not found or a build change has been detected, building..."
-
-  # Pre-download release archives on the host to avoid SSL issues inside the container build network.
-  # Files are saved to downloads/ with fixed names; a .version sidecar tracks the expected version
-  # so files are re-downloaded automatically when the version variables change.
-  DOWNLOADS_DIR="${SCRIPT_DIR}/downloads"
-  mkdir -p "${DOWNLOADS_DIR}"
-
-  download_if_needed() {
-    local url="$1"
-    local dest="$2"
-    local version="$3"
-    local version_file="${dest}.version"
-    if [ ! -f "${dest}" ] || [ "$(cat "${version_file}" 2>/dev/null)" != "${version}" ]; then
-      echo "Downloading $(basename "${dest}")..."
-      for attempt in 1 2 3; do
-        curl -L --http1.1 --max-time 60 -o "${dest}" "${url}" && break
-        [ $attempt -eq 3 ] && { rm -f "${dest}"; echo "Error: failed to download $(basename "${dest}")"; exit 1; }
-        sleep 5
-      done
-      echo "${version}" > "${version_file}"
-    fi
-  }
-
-  download_if_needed \
-    "https://github.com/neovim/neovim/releases/download/v${NVIM_VERSION}/nvim-linux-x86_64.tar.gz" \
-    "${DOWNLOADS_DIR}/nvim-linux-x86_64.tar.gz" \
-    "${NVIM_VERSION}"
-
-  download_if_needed \
-    "https://github.com/jesseduffield/lazygit/releases/download/v${LAZYGIT_VERSION}/lazygit_${LAZYGIT_VERSION}_linux_x86_64.tar.gz" \
-    "${DOWNLOADS_DIR}/lazygit.tar.gz" \
-    "${LAZYGIT_VERSION}"
-
-  download_if_needed \
-    "https://github.com/dandavison/delta/releases/download/${DELTA_VERSION}/delta-${DELTA_VERSION}-x86_64-unknown-linux-gnu.tar.gz" \
-    "${DOWNLOADS_DIR}/delta.tar.gz" \
-    "${DELTA_VERSION}"
-
-  # Detect AVX2 support on the host and download the matching OpenCode binary.
-  # The container runs on the same CPU, so the host check is authoritative.
-  if grep -qwi avx2 /proc/cpuinfo 2>/dev/null; then
-    OPENCODE_ARCH_SUFFIX=""
-  else
-    OPENCODE_ARCH_SUFFIX="-baseline"
+if [ "${SKIP_BUILD}" = true ]; then
+  if ! podman image exists "${IMAGE_NAME}" 2>/dev/null; then
+    echo "Error: --skip-build specified but container image '${IMAGE_NAME}' does not exist."
+    echo "Please build the image first by running ./nvim-container.sh without --skip-build."
+    exit 1
   fi
+  echo "Skipping image build (--skip-build enabled)."
+else
+  CONTAINERFILE_HASH=$(printf '%s %s %s %s %s %s' \
+    "$(sha256sum "${SCRIPT_DIR}/Containerfile" | cut -d' ' -f1)" \
+    "$(sha256sum "${SCRIPT_DIR}/entrypoint.sh" | cut -d' ' -f1)" \
+    "${DELTA_VERSION}" "${FD_VERSION}" "${LAZYGIT_VERSION}" "${NVIM_VERSION}" "${OPENCODE_VERSION}" "${TREE_SITTER_VERSION}" \
+    | sha256sum | cut -d' ' -f1)
+  CURRENT_HASH=$(podman image inspect "${IMAGE_NAME}" --format '{{index .Labels "containerfile-hash"}}' 2>/dev/null)
 
-  download_if_needed \
-    "https://github.com/anomalyco/opencode/releases/download/v${OPENCODE_VERSION}/opencode-linux-x64${OPENCODE_ARCH_SUFFIX}.tar.gz" \
-    "${DOWNLOADS_DIR}/opencode.tar.gz" \
-    "${OPENCODE_VERSION}"
+  if [ "${CURRENT_HASH}" != "${CONTAINERFILE_HASH}" ]; then
+    echo "Image '${IMAGE_NAME}' not found or a build change has been detected, building..."
 
-  podman build -t ${IMAGE_NAME} \
-    --label "containerfile-hash=${CONTAINERFILE_HASH}" \
-    --build-arg USERNAME=${CONTAINER_USER} \
-    --build-arg UID=$(id -u) \
-    --build-arg GID=$(id -g) \
-    "${SCRIPT_DIR}"
+    # Pre-download release archives on the host to avoid SSL issues inside the container build network.
+    # Files are saved to downloads/ with fixed names; a .version sidecar tracks the expected version
+    # so files are re-downloaded automatically when the version variables change.
+    DOWNLOADS_DIR="${SCRIPT_DIR}/downloads"
+    mkdir -p "${DOWNLOADS_DIR}"
+
+    download_if_needed() {
+      local url="$1"
+      local dest="$2"
+      local version="$3"
+      local version_file="${dest}.version"
+      if [ ! -f "${dest}" ] || [ "$(cat "${version_file}" 2>/dev/null)" != "${version}" ]; then
+        echo "Downloading $(basename "${dest}")..."
+        for attempt in 1 2 3; do
+          curl -L --http1.1 --max-time 60 -o "${dest}" "${url}" && break
+          [ $attempt -eq 3 ] && { rm -f "${dest}"; echo "Error: failed to download $(basename "${dest}")"; exit 1; }
+          sleep 5
+        done
+        echo "${version}" > "${version_file}"
+      fi
+    }
+
+    download_if_needed \
+      "https://github.com/dandavison/delta/releases/download/${DELTA_VERSION}/delta-${DELTA_VERSION}-x86_64-unknown-linux-gnu.tar.gz" \
+      "${DOWNLOADS_DIR}/delta.tar.gz" \
+      "${DELTA_VERSION}"
+
+    download_if_needed \
+    "https://github.com/sharkdp/fd/releases/download/v${FD_VERSION}/fd-v${FD_VERSION}-x86_64-unknown-linux-gnu.tar.gz" \
+    "${DOWNLOADS_DIR}/fd.tar.gz" \
+    "${FD_VERSION}"
+
+    download_if_needed \
+      "https://github.com/jesseduffield/lazygit/releases/download/v${LAZYGIT_VERSION}/lazygit_${LAZYGIT_VERSION}_linux_x86_64.tar.gz" \
+      "${DOWNLOADS_DIR}/lazygit.tar.gz" \
+      "${LAZYGIT_VERSION}"
+
+    download_if_needed \
+      "https://github.com/neovim/neovim/releases/download/v${NVIM_VERSION}/nvim-linux-x86_64.tar.gz" \
+      "${DOWNLOADS_DIR}/nvim-linux-x86_64.tar.gz" \
+      "${NVIM_VERSION}"
+
+    # Detect AVX2 support on the host and download the matching OpenCode binary.
+    # The container runs on the same CPU, so the host check is authoritative.
+    if grep -qwi avx2 /proc/cpuinfo 2>/dev/null; then
+      OPENCODE_ARCH_SUFFIX=""
+    else
+      OPENCODE_ARCH_SUFFIX="-baseline"
+    fi
+
+    download_if_needed \
+      "https://github.com/anomalyco/opencode/releases/download/v${OPENCODE_VERSION}/opencode-linux-x64${OPENCODE_ARCH_SUFFIX}.tar.gz" \
+      "${DOWNLOADS_DIR}/opencode.tar.gz" \
+      "${OPENCODE_VERSION}"
+
+    download_if_needed \
+      "https://github.com/tree-sitter/tree-sitter/releases/download/v${TREE_SITTER_VERSION}/tree-sitter-cli-linux-x64.zip" \
+      "${DOWNLOADS_DIR}/tree-sitter-cli-linux-x64.zip" \
+      "${TREE_SITTER_VERSION}"
+
+    podman build -t ${IMAGE_NAME} \
+      --label "containerfile-hash=${CONTAINERFILE_HASH}" \
+      --build-arg USERNAME=${CONTAINER_USER} \
+      --build-arg UID=$(id -u) \
+      --build-arg GID=$(id -g) \
+      "${SCRIPT_DIR}"
+  fi
 fi
 
 # Section 4: Pre-Run Setup
@@ -168,9 +202,9 @@ chmod +x "${SCRIPT_DIR}/entrypoints/"*.sh 2>/dev/null
 # All directories are namespaced under ~/.local/{share,state}/nvim-cont/ to keep
 # the host tidy. Each tool gets its own subdirectory.
 mkdir -p \
-  "${HOME}/.local/share/${IMAGE_NAME}/nvim" \
+  "${HOME}/.local/share/${IMAGE_NAME}/nvim/${NEOVIM_CONFIG}" \
   "${HOME}/.local/share/${IMAGE_NAME}/opencode" \
-  "${HOME}/.local/state/${IMAGE_NAME}/nvim" \
+  "${HOME}/.local/state/${IMAGE_NAME}/nvim/${NEOVIM_CONFIG}" \
   "${HOME}/.local/state/${IMAGE_NAME}/opencode" \
   "${HOME}/.local/state/${IMAGE_NAME}/lazygit"
 
@@ -183,15 +217,15 @@ podman run --rm -it \
   --hostname "${IMAGE_NAME}" \
   -v "${TARGET}:/home/${CONTAINER_USER}/${TARGET_DIR}:z" \
   -v "${SCRIPT_DIR}/config/lazygit:/home/${CONTAINER_USER}/.config/lazygit:z" \
-  -v "${SCRIPT_DIR}/config/nvim:/home/${CONTAINER_USER}/.config/nvim:z" \
+  -v "${SCRIPT_DIR}/config/nvim/${NEOVIM_CONFIG}:/home/${CONTAINER_USER}/.config/nvim:z" \
   -v "${SCRIPT_DIR}/config/opencode:/home/${CONTAINER_USER}/.config/opencode:z" \
   -v "${SCRIPT_DIR}/config/tmux:/home/${CONTAINER_USER}/.config/tmux:z" \
   -v "${SCRIPT_DIR}/entrypoints:/usr/local/bin/entrypoints:z" \
   -v "${SCRIPT_DIR}/config/ssh/checkhostip.conf:/etc/ssh/ssh_config.d/checkhostip.conf:ro,z" \
   -v "${SCRIPT_DIR}/config/bash/.bashrc:/home/${CONTAINER_USER}/.bashrc:ro,z" \
-  -v "${HOME}/.local/share/${IMAGE_NAME}/nvim:/home/${CONTAINER_USER}/.local/share/nvim:z" \
+  -v "${HOME}/.local/share/${IMAGE_NAME}/nvim/${NEOVIM_CONFIG}:/home/${CONTAINER_USER}/.local/share/nvim:z" \
   -v "${HOME}/.local/share/${IMAGE_NAME}/opencode:/home/${CONTAINER_USER}/.local/share/opencode:z" \
-  -v "${HOME}/.local/state/${IMAGE_NAME}/nvim:/home/${CONTAINER_USER}/.local/state/nvim:z" \
+  -v "${HOME}/.local/state/${IMAGE_NAME}/nvim/${NEOVIM_CONFIG}:/home/${CONTAINER_USER}/.local/state/nvim:z" \
   -v "${HOME}/.local/state/${IMAGE_NAME}/opencode:/home/${CONTAINER_USER}/.local/state/opencode:z" \
   -v "${HOME}/.local/state/${IMAGE_NAME}/lazygit:/home/${CONTAINER_USER}/.local/state/lazygit:z" \
   -v "${HOME}/.ssh:/home/${CONTAINER_USER}/.ssh:z" \
