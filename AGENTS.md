@@ -73,13 +73,33 @@ plugins/
 
 `require("config.plugins")` in `config/nvim/custom/init.lua` resolves to `plugins/init.lua` via Lua's directory `init.lua` convention. **When adding a new plugin to the custom config: declare its source in `plugins/init.lua` inside `vim.pack.add()`, create a `plugins/<name>.lua` config file, and add a `require()` call for it at the bottom of `plugins/init.lua`.**
 
+## Neovim Configs
+
+Neovim configurations are stored under `config/nvim/` with one subdirectory per config: `custom/`, `lazyvim/`, `nvchad/`. The selected config (via `--config` flag) is mounted to `~/.config/nvim` in the container at runtime.
+
+### Custom
+
+- Plugins are declared and configured under `config/nvim/custom/lua/config/plugins/` (see [Plugin Structure](#plugin-structure) for details).
+- **OSC 52 clipboard sets `vim.env.TMUX = nil` intentionally.** The workaround in `config/nvim/custom/lua/config/clipboard.lua` forces a bare OSC 52 sequence instead of a tmux DCS passthrough. Do not remove it. This is required because the container runs tmux, and Neovim's built-in OSC52 provider wraps sequences in DCS passthrough when `$TMUX` is set, which older tmux versions cannot unwrap.
+
+### NvChad
+
+- Uses the NvChad v2.5 distro with Lazy.nvim for plugin management.
+- Clipboard uses Neovim's built-in OSC52 provider (`vim.ui.clipboard.osc52`) configured in `config/nvim/nvchad/lua/config/clipboard.lua`. No `$TMUX` workaround is needed because there is no tmux running inside the container; bare OSC52 sequences are sent directly to the host tmux, which forwards them to the system clipboard via existing `set-clipboard on` and `Ms` terminfo settings.
+- Follows standard NvChad configuration conventions; core config files (options, autocmds, mappings) are in `lua/config/`.
+
+### LazyVim
+
+- Uses the LazyVim distro with Lazy.nvim for plugin management.
+- Follows standard LazyVim configuration conventions; refer to [LazyVim docs](https://www.lazyvim.org) for setup details.
+- Clipboard setup (if needed) should use the OSC52 approach consistent with Custom and NvChad configs.
+
 ## Non-Obvious Constraints
 
 - **Podman only.** `--userns=keep-id` is a Podman flag; the run command fails under Docker.
 - **UID is baked into the image** via `--build-arg UID/GID`. Rebuilding on a machine with a different UID requires a fresh build (`podman rmi nvim-cont`).
 - **`vim.pack` requires Neovim 0.12+.** Do not replace with lazy.nvim/packer without rewriting the plugin structure under `config/nvim/<config>/lua/config/plugins/`.
 - **Plugin init order is mandatory.** `config.plugins` must be `require()`-d first in `init.lua` — `vim.pack.add()` must run before any `require("plugin-name")` calls.
-- **OSC 52 clipboard sets `vim.env.TMUX = nil` intentionally.** The workaround in `config/nvim/custom/lua/config/clipboard.lua` forces a bare OSC 52 sequence instead of a tmux DCS passthrough. Do not remove it.
 - **`downloads/` is `.gitignored`.** Tarballs are auto-downloaded on first use; a `.version` sidecar tracks the cached version for each file.
 - **OpenCode is installed from host-preloaded tarballs.** `nvim-container.sh` detects AVX2 support on the host CPU (`/proc/cpuinfo`) and downloads either `opencode-linux-x64.tar.gz` or `opencode-linux-x64-baseline.tar.gz`, saving it as `downloads/opencode.tar.gz`. `Containerfile` installs it to `/usr/local/bin/opencode` like all other tools.
 - **Tree-sitter parsers compile on first launch.** `nvim-treesitter` is managed via `vim.pack`; `gcc` and `make` are installed in the image for this. Compiled parsers land in `~/.local/share/nvim/parser/` (host-mounted at `~/.local/share/nvim-cont/nvim`), so they survive image rebuilds. Ansible has no dedicated grammar — use `yaml`. Terraform uses the `hcl` grammar. Neovim 0.12 already bundles `c`, `lua`, `vim`, `markdown`, `markdown_inline`, `vimdoc`, and `query`.
